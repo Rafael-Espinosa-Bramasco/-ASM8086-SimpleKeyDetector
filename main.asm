@@ -17,9 +17,11 @@ DATA SEGMENT BYTE COMMON 'DATA'
     USER_CHAR_CODE DB 'Char code: ','$'
     CNTRL_C_MSG DB 'This character is used to abort execution, BYE!','$'
 
-    ALNUM_MSG DB 'It is an alpha-numeric character','$'
-    ALPHA_MSG DB 'It is an alpha character','$'
-    ASCII_MSG DB 'It is an ascii character (value of char between 0 and 127)','$'
+    ALNUM_MSG DB 09,'It is an alpha-numeric character','$'
+    ALPHA_MSG DB 09,'It is an alpha character','$'
+    ASCII_MSG DB 09,'It is an ascii character (value of char between 0 and 127)','$'
+    CNTRL_MSG DB 09,'It is a control character','$'
+    DIGIT_MSG DB 09,'It is a digit character','$'
 DATA ENDS
 
 STACK SEGMENT PAR STACK 'STACK'
@@ -227,12 +229,12 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
         CMP_ASCII_0:
             CMP AL,0
             JAE ASCII_127
-        JB NEXT
+        JB CMP_CNTRL_0
 
         ASCII_127:
             CMP AL,127
             JBE IS_ASCII
-            JMP NEXT
+            JMP CMP_CNTRL_0
 
         IS_ASCII:
             MOV AH,09H
@@ -246,7 +248,60 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
             XOR AX,AX
             MOV AL,USER_IN
 
+        ; is control?
+        CMP_CNTRL_0:
+            CMP AL,0
+            JAE CNTRL_31
+        CMP_CNTRL_127:
+            CMP AL,127
+            JE IS_CNTRL
+        JMP CMP_DIGIT_0
+        
+        CNTRL_31:
+            CMP AL,31
+            JBE IS_CNTRL
+            JMP CMP_CNTRL_127
+
+        IS_CNTRL:
+            MOV AH,09H
+            LEA DX,CNTRL_MSG
+            INT 21H
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+
+            XOR AX,AX
+            MOV AL,USER_IN
+        
+        ; is digit?
+        CMP_DIGIT_0:
+            CMP AL,48
+            JAE CMP_DIGIT_57
+        JMP NEXT
+
+        CMP_DIGIT_57:
+            CMP AL,57
+            JBE IS_DIGIT
+            JMP NEXT
+
+        IS_DIGIT:
+            MOV AH,09H
+            LEA DX,DIGIT_MSG
+            INT 21H
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+
+            XOR AX,AX
+            MOV AL,USER_IN
+
         NEXT:
+
+        MOV AH,09H
+        LEA DX,NEW_LINE
+        INT 21H
 
         RET
     CHAR_TYPES ENDP
