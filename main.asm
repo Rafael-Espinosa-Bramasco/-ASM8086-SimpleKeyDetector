@@ -15,6 +15,10 @@ DATA SEGMENT BYTE COMMON 'DATA'
     ; Conditional lines
     USER_CHAR_MSG DB 'You entered the character ','$'
     USER_CHAR_CODE DB 'Char code: ','$'
+    CNTRL_C_MSG DB 'This character is used to abort execution, BYE!','$'
+
+    ALNUM_MSG DB 'It is an alpha-numeric character','$'
+    ALPHA_MSG DB 'It is an alpha character','$'
 DATA ENDS
 
 STACK SEGMENT PAR STACK 'STACK'
@@ -48,10 +52,6 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
             ; Read user input
             MOV AH,07H
             INT 21H
-
-            ; It is exit?
-            CMP AL,03H
-            JE EXIT
 
             ; Save user input
             MOV USER_IN,AL
@@ -118,14 +118,114 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
             LEA DX,NEW_LINE
             INT 21H
 
+            ; Types of char
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+            
+            CALL CHAR_TYPES
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+            ; End types of char
+
+            ; It is exit?
+            CL_REGS
+            MOV AL,USER_IN
+            CMP AL,03H
+            JE EXIT
+
             JMP MAIN
 
             EXIT:
+                MOV AH,09H
+                LEA DX,CNTRL_C_MSG
+                INT 21H
+
                 MOV AX,0000H
                 INT 21H
 
         RET
     MAIN ENDP
+
+    CHAR_TYPES PROC NEAR
+        ; Get user input value
+        MOV AL,USER_IN
+
+        ; is alpha-numeric?
+            CMP AL,48
+            JAE ALNUM_NUM
+        CMP_ALNUM_MAYUS:
+            CMP AL,65
+            JAE ALNUM_ALM
+        CMP_ALNUM_minus:
+            CMP AL,97
+            JAE ALNUM_ALmi
+        JB CMP_ALPHA_MAYUS
+
+        ALNUM_NUM:
+            CMP AL,57
+            JBE IS_ALNUM
+            JMP CMP_ALNUM_MAYUS
+        
+        ALNUM_ALM:
+            CMP AL,90
+            JBE IS_ALNUM
+            JMP CMP_ALNUM_minus
+
+        ALNUM_ALmi:
+            CMP AL,122
+            JBE IS_ALNUM
+            JMP CMP_ALPHA_MAYUS
+
+        IS_ALNUM:
+            MOV AH,09H
+            LEA DX,ALNUM_MSG
+            INT 21H
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+
+            XOR AX,AX
+            MOV AL,USER_IN
+
+        ; is alpha?
+        CMP_ALPHA_MAYUS:
+            CMP AL,65
+            JAE ALPHA_ALM
+        CMP_ALPHA_minus:
+            CMP AL,97
+            JAE ALPHA_ALmi
+        JB NEXT
+
+        ALPHA_ALM:
+            CMP AL,90
+            JBE IS_ALPHA
+            JMP CMP_ALPHA_minus
+
+        ALPHA_ALmi:
+            CMP AL,122
+            JBE IS_ALPHA
+            JMP NEXT
+
+        IS_ALPHA:
+            MOV AH,09H
+            LEA DX,ALPHA_MSG
+            INT 21H
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+
+            XOR AX,AX
+            MOV AL,USER_IN
+
+        NEXT:
+
+        RET
+    CHAR_TYPES ENDP
 
     END
 CODE ENDS
