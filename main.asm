@@ -19,6 +19,7 @@ DATA SEGMENT BYTE COMMON 'DATA'
 
     ALNUM_MSG DB 'It is an alpha-numeric character','$'
     ALPHA_MSG DB 'It is an alpha character','$'
+    ASCII_MSG DB 'It is an ascii character (value of char between 0 and 127)','$'
 DATA ENDS
 
 STACK SEGMENT PAR STACK 'STACK'
@@ -198,7 +199,7 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
         CMP_ALPHA_minus:
             CMP AL,97
             JAE ALPHA_ALmi
-        JB NEXT
+        JB CMP_ASCII_0
 
         ALPHA_ALM:
             CMP AL,90
@@ -208,11 +209,34 @@ CODE SEGMENT PAGE PUBLIC 'CODE'
         ALPHA_ALmi:
             CMP AL,122
             JBE IS_ALPHA
-            JMP NEXT
+            JMP CMP_ASCII_0
 
         IS_ALPHA:
             MOV AH,09H
             LEA DX,ALPHA_MSG
+            INT 21H
+
+            MOV AH,09H
+            LEA DX,NEW_LINE
+            INT 21H
+
+            XOR AX,AX
+            MOV AL,USER_IN
+
+        ; is ascii?
+        CMP_ASCII_0:
+            CMP AL,0
+            JAE ASCII_127
+        JB NEXT
+
+        ASCII_127:
+            CMP AL,127
+            JBE IS_ASCII
+            JMP NEXT
+
+        IS_ASCII:
+            MOV AH,09H
+            LEA DX,ASCII_MSG
             INT 21H
 
             MOV AH,09H
